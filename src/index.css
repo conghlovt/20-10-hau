@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@layer base {
+  body,
+  #root {
+    font-family: 'JetBrains Mono', 'Roboto Mono', 'Be Vietnam Pro', monospace, sans-serif;
+    background-color: #060913;
+    color: #f8fafc;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  .font-mono-vn {
+    font-family: 'JetBrains Mono', 'Roboto Mono', 'Be Vietnam Pro', monospace;
+  }
+
+  .font-sans-vn {
+    font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+}
+
+@keyframes cursorBlink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  50% {
+    transform: translateY(-14px) translateX(6px);
+  }
+}
+
+@keyframes grassSway {
+  0%, 100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes heartFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(1) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-16px) scale(1.08) rotate(5deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 18px rgba(45, 212, 191, 0.65));
+  }
+  50% {
+    filter: drop-shadow(0 0 32px rgba(56, 189, 248, 0.95));
+  }
+}
+
+@keyframes popBurst {
+  0% {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+@keyframes eqBar1 {
+  0%, 100% { height: 5px; }
+  50% { height: 14px; }
+}
+@keyframes eqBar2 {
+  0%, 100% { height: 13px; }
+  50% { height: 4px; }
+}
+@keyframes eqBar3 {
+  0%, 100% { height: 7px; }
+  50% { height: 15px; }
+}
+@keyframes eqBar4 {
+  0%, 100% { height: 11px; }
+  50% { height: 5px; }
+}
+
+.animate-cursor-blink {
+  animation: cursorBlink 0.85s infinite;
+}
+
+.animate-float-slow {
+  animation: floatSlow 5.5s ease-in-out infinite;
+}
+
+.animate-heart-float {
+  animation: heartFloat 3.2s ease-in-out infinite;
+}
+
+.animate-grass-sway {
+  transform-origin: bottom center;
+  animation: grassSway 3.4s ease-in-out infinite;
+}
