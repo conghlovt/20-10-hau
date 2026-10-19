@@ -109,3 +109,47 @@
   transform-origin: bottom center;
   animation: grassSway 3.4s ease-in-out infinite;
 }
+
+@keyframes piMiss {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  25% { transform: translateX(-9px) rotate(-5deg); }
+  65% { transform: translateX(7px) rotate(4deg); }
+}
+@keyframes missRing {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(.5); }
+  to { opacity: 0; transform: translate(-50%, -90%) scale(2.4); }
+}
+.animate-pi-miss { animation: piMiss .55s ease-in-out; }
+.animate-miss-ring { animation: missRing .8s ease-out forwards; }
+@keyframes memoryTwinkle {
+  0%, 100% { opacity: .15; transform: scale(.7); }
+  50% { opacity: .85; transform: scale(1.25); }
+}
+@keyframes memoryDrift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(45px, -35px); }
+}
+@keyframes memoryComet {
+  0%, 75%, 100% { opacity: 0; transform: rotate(35deg) translateX(-150px); }
+  78% { opacity: .7; }
+  90% { opacity: 0; transform: rotate(35deg) translateX(380px); }
+}
+@keyframes memoryRise {
+  from { opacity: 0; transform: translateY(0) rotate(-10deg); }
+  15%, 75% { opacity: .5; }
+  to { opacity: 0; transform: translateY(-105dvh) rotate(25deg); }
+}
+@keyframes memoryHalo {
+  0%, 100% { opacity: .4; transform: scale(.9); }
+  50% { opacity: .9; transform: scale(1.16); }
+}
+.memory-star { animation: memoryTwinkle 4s ease-in-out infinite; }
+.memory-nebula { animation: memoryDrift 22s ease-in-out infinite; }
+.memory-comet { animation: memoryComet 14s linear infinite; }
+.memory-heart { animation: memoryRise 22s linear infinite; }
+.memory-halo { animation: memoryHalo 6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-pi-miss, .animate-miss-ring { animation: none; }
+  .memory-effects *, .memory-halo { animation: none; }
+  .memory-comet, .memory-heart { display: none; }
+}

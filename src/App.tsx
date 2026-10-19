@@ -7,8 +7,14 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { PhotoItem } from './types/photo';
 import { DEFAULT_PHOTOS } from './data/defaultPhotos';
 import { PhotoAlbumModal } from './components/PhotoAlbumModal';
+const MISS_LINES: Record<number, string[]> = {
+  1: ['Ui, hụt mất rồi! Chạm đúng trái tim hồng nha.', 'Tim ở bên kia kìa! Công chờ cậu bắt lại nè.', 'Suýt trúng rồi! Thử thêm lần nữa cùng Công nhé.'],
+  2: ['Hoa mọc ở đồng cỏ phía dưới cơ, cậu ơi!', 'Công chưa thấy hoa đâu… chạm vào bãi cỏ nhé.', 'Xuống dưới một chút nữa là tới khu vườn rồi!'],
+  3: ['Ối, ngôi sao ở phía trên kìa!', 'Công đang chờ điều ước… chạm đúng một ngôi sao nhé.', 'Suýt chạm tới sao rồi! Cậu thử lại nha.'],
+  4: ['Giữ chiếc cỏ bốn lá thêm một chút để nhận quà nha!', 'Công hồi hộp quá… cậu tìm chiếc cỏ xanh nhé!', 'Gần tới món quà rồi! Chạm và giữ cỏ bốn lá nha.'],
+};
 
-const STORAGE_KEY = 'PI_2010_USER_PHOTOS_V3';
+
 
 interface FloatingHeart {
   id: number;
@@ -73,30 +79,18 @@ export default function App() {
   // Blinking animation for Pi's eyes
   const [isBlinking, setIsBlinking] = useState<boolean>(false);
 
-  // Photos state persisted in localStorage
-  const [photos, setPhotos] = useState<PhotoItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (_) {}
-    return DEFAULT_PHOTOS;
-  });
-
-  const handleUpdatePhotos = (updatedPhotos: PhotoItem[]) => {
-    setPhotos(updatedPhotos);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPhotos));
-    } catch (_) {}
-  };
-
-  const handleResetPhotos = () => {
-    setPhotos(DEFAULT_PHOTOS);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (_) {}
+  const photos = DEFAULT_PHOTOS;
+  const [miss, setMiss] = useState<{ text: string; mood: 'puzzled' | 'sad' | 'surprised'; id: number; x: number; y: number } | null>(null);
+  const missCount = useRef(0);
+  useEffect(() => { setMiss(null); }, [chapter, isAlbumOpen]);
+  useEffect(() => {
+    if (!miss) return;
+    const timer = window.setTimeout(() => setMiss(null), 3500);
+    return () => clearTimeout(timer);
+  }, [miss]);
+  const reactToMiss = (e: React.MouseEvent | React.PointerEvent) => {
+    const index = missCount.current++ % 3;
+    setMiss({ text: MISS_LINES[chapter][index], mood: (['puzzled', 'sad', 'surprised'] as const)[index], id: Date.now(), x: e.clientX, y: e.clientY });
   };
 
   // Periodic natural eye blink when Pi is awake
@@ -112,7 +106,7 @@ export default function App() {
   // Determine the current narrative line based on chapter & progress
   const getCurrentDialogue = useCallback((): string => {
     if (chapter === 0) {
-      if (introSubStep === 0) return 'Pi đang ngủ... chạm vào đâu đó để đánh thức nhé';
+      if (introSubStep === 0) return 'Công đang ngủ... chạm vào đâu đó để đánh thức nhé';
       if (introSubStep === 1) return 'Ơ... Cậu đến rồi hả? Làm tớ ngủ quên mất tiêu!';
       if (introSubStep === 2)
         return 'Mà tớ quên mất, hôm nay là ngày 20/10 — ngày đặc biệt của Cậu đó!';
@@ -157,7 +151,7 @@ export default function App() {
 
   // Run typewriter effect whenever dialogue changes
   useEffect(() => {
-    const target = getCurrentDialogue();
+    const target = miss?.text ?? getCurrentDialogue();
     fullTextRef.current = target;
 
     if (chapter === 0 && introSubStep === 0) {
@@ -179,7 +173,7 @@ export default function App() {
     }, 28);
 
     return () => clearInterval(timer);
-  }, [getCurrentDialogue, chapter, introSubStep]);
+  }, [getCurrentDialogue, chapter, introSubStep, miss]);
 
   // Ensure audio starts playing on first user interaction
   const ensureAudioPlaying = () => {
@@ -267,6 +261,12 @@ export default function App() {
   const handleStageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     ensureAudioPlaying();
 
+    const needsTarget = (chapter === 1 && hearts.some(h => !h.caught)) ||
+      (chapter === 2 && flowers.length < 3) ||
+      (chapter === 3 && litStars.some(s => !s)) ||
+      (chapter === 4 && !cloverCompleted);
+    if (needsTarget) { reactToMiss(e); return; }
+
     // If typewriter is still typing, complete the line immediately on first tap
     if (isTyping) {
       setTypedText(fullTextRef.current);
@@ -284,73 +284,39 @@ export default function App() {
     }
 
     if (chapter === 1) {
-      const uncaughtIdx = hearts.findIndex((h) => !h.caught);
-      if (uncaughtIdx !== -1) {
-        // Catch one heart if user taps anywhere on screen
-        setHearts((prev) =>
-          prev.map((h, i) => (i === uncaughtIdx ? { ...h, caught: true } : h))
-        );
-      } else {
-        setChapter(2);
-      }
+      setChapter(2);
       return;
     }
 
     if (chapter === 2) {
-      if (flowers.length < 3) {
-        plantNextFlower(e.clientX);
-      } else {
-        setChapter(3);
-      }
+      setChapter(3);
       return;
     }
 
     if (chapter === 3) {
-      const nextStarIdx = litStars.findIndex((s) => !s);
-      if (nextStarIdx !== -1) {
-        setLitStars((prev) => prev.map((s, i) => (i === nextStarIdx ? true : s)));
-      } else {
-        setChapter(4);
-      }
+      setChapter(4);
       return;
     }
 
-    if (chapter === 4) {
-      if (!cloverCompleted) {
-        // Trigger smooth auto-fill if user taps instead of long-pressing
-        setIsHoldingClover(true);
-      } else {
-        setIsAlbumOpen(true);
-      }
-    }
+    if (chapter === 4 && cloverCompleted) setIsAlbumOpen(true);
   };
 
   const handleCatchHeart = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
     ensureAudioPlaying();
+    setMiss(null);
     setHearts((prev) => prev.map((h) => (h.id === id ? { ...h, caught: true } : h)));
   };
 
   const handleTapStar = (idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
     ensureAudioPlaying();
+    setMiss(null);
     if (!litStars[idx]) {
       setLitStars((prev) => prev.map((s, i) => (i === idx ? true : s)));
     } else if (litStars.every(Boolean)) {
       setChapter(4);
     }
-  };
-
-  const handleReplayAll = () => {
-    setIsAlbumOpen(false);
-    setChapter(0);
-    setIntroSubStep(1);
-    setHearts(INITIAL_HEARTS);
-    setFlowers([]);
-    setLitStars([false, false, false]);
-    setCloverProgress(0);
-    setCloverCompleted(false);
-    setIsHoldingClover(false);
   };
 
   // Render highlighted keywords inside typed text (matching TikTok video styling)
@@ -399,7 +365,8 @@ export default function App() {
   };
 
   // Determine Pi's eye expression
-  const getEyeMode = (): 'sleeping' | 'normal' | 'happy' | 'wink' | 'chevron' => {
+  const getEyeMode = (): 'sleeping' | 'normal' | 'happy' | 'wink' | 'chevron' | 'puzzled' | 'sad' | 'surprised' => {
+    if (miss) return miss.mood;
     if (chapter === 0 && introSubStep === 0) return 'sleeping';
     if (chapter === 0 && introSubStep === 2) return 'happy';
     if (chapter === 1) return 'happy';
@@ -419,6 +386,7 @@ export default function App() {
       onClick={handleStageClick}
       className={`relative w-screen h-screen overflow-hidden select-none cursor-pointer transition-colors duration-700 ${getBackgroundStyle()}`}
     >
+      {miss && effectsEnabled && <span key={miss.id} aria-hidden="true" className="fixed z-40 pointer-events-none text-cyan-200 text-3xl animate-miss-ring" style={{ left: miss.x, top: miss.y }}>?</span>}
       {/* Background Music */}
       <audio ref={audioRef} src="/pi-bgm.mp3" loop preload="auto" />
 
@@ -729,7 +697,7 @@ export default function App() {
          ============================================================ */}
       <main className="relative z-20 w-full h-full flex flex-col items-center justify-center px-6 text-center pointer-events-none">
         {/* Pi's Eyes Container */}
-        <div className="relative flex flex-col items-center mb-7">
+        <div key={miss?.id ?? 'idle'} className={`relative flex flex-col items-center mb-7 ${miss && effectsEnabled ? 'animate-pi-miss' : ''}`}>
           {/* Ambient Cyan Aura Behind Eyes */}
           <div
             className={`absolute -inset-10 rounded-full blur-[48px] transition-opacity duration-700 ${
@@ -742,6 +710,9 @@ export default function App() {
           {/* The Two Eyes */}
           <div className="relative flex items-center gap-7 sm:gap-8 h-[82px]">
             {[0, 1].map((eyeIdx) => {
+              if (eyeMode === 'puzzled' || eyeMode === 'sad' || eyeMode === 'surprised') {
+                return <div key={eyeIdx} className="bg-cyan-300 shadow-[0_0_30px_#22d3ee] transition-all duration-200" style={{ width: eyeMode === 'surprised' ? 52 : 70, height: eyeMode === 'sad' ? 22 : eyeMode === 'puzzled' && eyeIdx === 1 ? 30 : 64, borderRadius: eyeMode === 'surprised' ? '50%' : '20px', transform: `rotate(${eyeMode === 'sad' ? (eyeIdx === 0 ? -15 : 15) : eyeMode === 'puzzled' ? (eyeIdx === 0 ? -10 : 10) : 0}deg)` }} />;
+              }
               if (eyeMode === 'sleeping') {
                 return (
                   <div
@@ -801,6 +772,7 @@ export default function App() {
         {/* Typewriter Dialogue Line */}
         <div className="min-h-[68px] max-w-md flex flex-col items-center justify-center">
           <p
+            aria-live="polite"
             className={`text-base sm:text-xl font-mono-vn leading-relaxed tracking-wide ${
               chapter === 0 && introSubStep === 0
                 ? 'text-cyan-300/80 drop-shadow-[0_0_10px_rgba(34,211,238,0.45)]'
@@ -872,7 +844,7 @@ export default function App() {
           CHAPTER 2 GLOWING GRASS GARDEN & PLANTED FLOWERS
          ============================================================ */}
       {chapter === 2 && (
-        <div className="absolute bottom-0 left-0 right-0 h-[220px] z-20 pointer-events-none overflow-hidden">
+        <div onClick={(e) => { if (flowers.length >= 3) return; e.stopPropagation(); ensureAudioPlaying(); setMiss(null); plantNextFlower(e.clientX); }} className="absolute bottom-0 left-0 right-0 h-[220px] z-20 pointer-events-auto overflow-hidden" role="button" tabIndex={0} aria-label="Plant a flower" onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMiss(null); plantNextFlower(); } }}>
           {/* Planted Flowers */}
           {flowers.map((flower) => (
             <div
@@ -923,24 +895,11 @@ export default function App() {
          ============================================================ */}
       {chapter === 4 && (
         <div
-          onClick={(e) => {
-            e.stopPropagation();
-            ensureAudioPlaying();
-            setIsHoldingClover(true);
-          }}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            ensureAudioPlaying();
-            setIsHoldingClover(true);
-          }}
-          onMouseUp={() => setIsHoldingClover(false)}
-          onTouchStart={(e) => {
-            e.stopPropagation();
-            ensureAudioPlaying();
-            setIsHoldingClover(true);
-          }}
-          onTouchEnd={() => setIsHoldingClover(false)}
-          className="absolute bottom-[16%] right-[12%] sm:right-[28%] z-30 pointer-events-auto cursor-pointer group select-none"
+          onClick={(e) => { e.stopPropagation(); if (cloverCompleted) setIsAlbumOpen(true); }}
+          onPointerDown={(e) => { e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); ensureAudioPlaying(); setMiss(null); setIsHoldingClover(true); }}
+          onPointerUp={(e) => { setIsHoldingClover(false); if (!cloverCompleted) { setCloverProgress(0); reactToMiss(e); } }}
+          onPointerCancel={() => { setIsHoldingClover(false); setCloverProgress(0); }}
+          className="absolute bottom-[16%] right-[12%] sm:right-[28%] z-30 pointer-events-auto cursor-pointer group select-none touch-none"
           title="Chạm hoặc giữ chặt cỏ 4 lá để nhận quà"
         >
           <div className="relative w-40 h-40 flex items-center justify-center">
@@ -1053,10 +1012,7 @@ export default function App() {
       {isAlbumOpen && (
         <PhotoAlbumModal
           photos={photos}
-          onUpdatePhotos={handleUpdatePhotos}
-          onResetPhotos={handleResetPhotos}
           onClose={() => setIsAlbumOpen(false)}
-          onReplayStory={handleReplayAll}
           effectsEnabled={effectsEnabled}
         />
       )}
